@@ -20,44 +20,74 @@
 
     <style>
         /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1a202c; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #4a5568; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #718096; 
-        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* Glassmorphism Utilities */
-        .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        /* Animation Keyframes */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Map Height */
-        #map {
-            height: 400px;
-            z-index: 1;
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
 
-        /* Card Transitions */
-        .stat-card {
-            transition: all 0.3s ease;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
-        /* Animation */
+        @keyframes bg-pan {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Utility Classes */
+        .animate-entry {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0; /* Hidden initially */
+        }
+        
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+
+        /* Glassmorphism Pro */
+        .glass {
+            background: rgba(30, 41, 59, 0.4); /* Darker, richer tint */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Hover Glow Effects */
+        .glass:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-temp:hover { box-shadow: 0 0 25px rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); }
+        .card-hum:hover { box-shadow: 0 0 25px rgba(34, 211, 238, 0.15); border-color: rgba(34, 211, 238, 0.3); }
+        .card-uv:hover { box-shadow: 0 0 25px rgba(250, 204, 21, 0.15); border-color: rgba(250, 204, 21, 0.3); }
+        .card-gas:hover { box-shadow: 0 0 25px rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
+
+        /* Map & Chart Containers */
+        #map { height: 100%; min-height: 400px; z-index: 1; }
+        
+        /* Map Marker Pulse */
         @keyframes pulse-ring {
             0% { transform: scale(0.33); }
             80%, 100% { opacity: 0; }
@@ -67,275 +97,336 @@
             50% { transform: scale(1); }
             100% { transform: scale(0.8); }
         }
+
+        /* Background Mesh */
+        .bg-mesh {
+            background: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                        radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                        radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            background-size: 200% 200%;
+            animation: bg-pan 30s ease infinite;
+        }
     </style>
 </head>
-<body class="bg-slate-900 text-gray-100 font-sans min-h-screen selection:bg-blue-500 selection:text-white flex flex-col">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen selection:bg-cyan-500 selection:text-white flex flex-col overflow-x-hidden bg-mesh">
 
     <!-- Navbar -->
-    <nav class="glass sticky top-0 z-50 border-b border-slate-700">
+    <nav class="glass sticky top-0 z-50 border-b border-white/5 animate-entry">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center animate-pulse">
-                        <i class="fa-solid fa-satellite-dish text-white text-sm"></i>
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <i class="fa-solid fa-satellite-dish text-white text-lg"></i>
                     </div>
-                    <span class="font-bold text-xl tracking-wide">EcoSense<span class="text-blue-400">Live</span></span>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-2xl tracking-tight leading-none">EcoSense<span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Live</span></span>
+                        <span class="text-[10px] text-slate-400 uppercase tracking-[0.2em]">Monitoring System</span>
+                    </div>
                 </div>
-                <div class="flex items-center gap-4 text-sm">
-                    <span id="connection-status" class="flex items-center gap-2 text-green-400">
-                        <span class="w-2 h-2 rounded-full bg-green-400"></span> Data Loaded
+                <div class="flex flex-col items-end gap-1">
+                    <span id="connection-status" class="flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> Connected
                     </span>
-                    <span id="last-updated" class="text-slate-400 hidden sm:inline">Fetching timestamp...</span>
+                    <span id="last-updated" class="text-[10px] text-slate-500 font-mono">Initializing...</span>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow space-y-8">
         
-        <!-- Status Overview Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Status Overview Cards (Row 1) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-entry delay-100">
             
             <!-- Temperature -->
-            <div id="card-temp" class="stat-card glass rounded-xl p-6 relative overflow-hidden group">
-                <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <i class="fa-solid fa-temperature-three-quarters text-6xl"></i>
+            <div id="card-temp" class="glass card-temp rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl group-hover:bg-blue-500/30 transition-all duration-500"></div>
+                <div class="absolute right-6 top-6 text-slate-600/50 group-hover:text-blue-400/50 transition-colors duration-300 animate-float">
+                    <i class="fa-solid fa-temperature-three-quarters text-5xl"></i>
                 </div>
-                <div class="flex flex-col">
-                    <span class="text-slate-400 text-sm font-medium uppercase tracking-wider">Temperature</span>
-                    <div class="flex items-end gap-2 mt-2">
-                        <span id="val-temp" class="text-4xl font-bold">--</span>
-                        <span class="text-xl text-slate-500 mb-1">°C</span>
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-blue-400 text-xs font-bold uppercase tracking-wider">Temperature</span>
+                        <span id="status-temp" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Syncing</span>
                     </div>
-                    <!-- Added Status Label -->
-                    <span id="status-temp" class="text-xs mt-2 px-2 py-1 rounded bg-slate-800 inline-block w-fit">Waiting...</span>
-                    <div class="mt-4 h-1 w-full bg-slate-700 rounded-full overflow-hidden">
-                        <div id="bar-temp" class="h-full bg-blue-500 w-0 transition-all duration-1000"></div>
+                    <div class="flex items-baseline gap-1">
+                        <span id="val-temp" class="text-4xl font-black tracking-tight text-white">--</span>
+                        <span class="text-lg text-slate-400 font-medium">°C</span>
+                    </div>
+                    <div class="mt-4 h-1.5 w-full bg-slate-800/80 rounded-full overflow-hidden backdrop-blur-sm">
+                        <div id="bar-temp" class="h-full bg-gradient-to-r from-blue-600 to-blue-400 w-0 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Humidity -->
-            <div id="card-hum" class="stat-card glass rounded-xl p-6 relative overflow-hidden group">
-                <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <i class="fa-solid fa-droplet text-6xl"></i>
+            <div id="card-hum" class="glass card-hum rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 w-24 h-24 bg-cyan-500/20 rounded-full blur-2xl group-hover:bg-cyan-500/30 transition-all duration-500"></div>
+                <div class="absolute right-6 top-6 text-slate-600/50 group-hover:text-cyan-400/50 transition-colors duration-300 animate-float delay-100">
+                    <i class="fa-solid fa-droplet text-5xl"></i>
                 </div>
-                <div class="flex flex-col">
-                    <span class="text-slate-400 text-sm font-medium uppercase tracking-wider">Humidity</span>
-                    <div class="flex items-end gap-2 mt-2">
-                        <span id="val-hum" class="text-4xl font-bold">--</span>
-                        <span class="text-xl text-slate-500 mb-1">%</span>
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-cyan-400 text-xs font-bold uppercase tracking-wider">Humidity</span>
+                        <span id="status-hum" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Syncing</span>
                     </div>
-                    <!-- Added Status Label -->
-                    <span id="status-hum" class="text-xs mt-2 px-2 py-1 rounded bg-slate-800 inline-block w-fit">Waiting...</span>
-                    <div class="mt-4 h-1 w-full bg-slate-700 rounded-full overflow-hidden">
-                        <div id="bar-hum" class="h-full bg-cyan-400 w-0 transition-all duration-1000"></div>
+                    <div class="flex items-baseline gap-1">
+                        <span id="val-hum" class="text-4xl font-black tracking-tight text-white">--</span>
+                        <span class="text-lg text-slate-400 font-medium">%</span>
+                    </div>
+                    <div class="mt-4 h-1.5 w-full bg-slate-800/80 rounded-full overflow-hidden backdrop-blur-sm">
+                        <div id="bar-hum" class="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 w-0 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
                     </div>
                 </div>
             </div>
 
             <!-- UV Index -->
-            <div id="card-uv" class="stat-card glass rounded-xl p-6 relative overflow-hidden group">
-                <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <i class="fa-regular fa-sun text-6xl"></i>
+            <div id="card-uv" class="glass card-uv rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 w-24 h-24 bg-yellow-500/20 rounded-full blur-2xl group-hover:bg-yellow-500/30 transition-all duration-500"></div>
+                <div class="absolute right-6 top-6 text-slate-600/50 group-hover:text-yellow-400/50 transition-colors duration-300 animate-float delay-200">
+                    <i class="fa-regular fa-sun text-5xl"></i>
                 </div>
-                <div class="flex flex-col">
-                    <span class="text-slate-400 text-sm font-medium uppercase tracking-wider">UV Index</span>
-                    <div class="flex items-end gap-2 mt-2">
-                        <span id="val-uv" class="text-4xl font-bold">--</span>
-                        <span class="text-xl text-slate-500 mb-1">Idx</span>
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-yellow-400 text-xs font-bold uppercase tracking-wider">UV Index</span>
+                        <span id="status-uv" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Syncing</span>
                     </div>
-                    <span id="status-uv" class="text-xs mt-2 px-2 py-1 rounded bg-slate-800 inline-block w-fit">Normal</span>
+                    <div class="flex items-baseline gap-1">
+                        <span id="val-uv" class="text-4xl font-black tracking-tight text-white">--</span>
+                        <span class="text-lg text-slate-400 font-medium">Idx</span>
+                    </div>
+                    <!-- Mini visual indicator for UV -->
+                    <div class="mt-4 flex gap-1 h-1.5">
+                        <div class="flex-1 rounded-l-full bg-green-500/20 overflow-hidden"><div id="uv-seg-1" class="h-full w-full bg-green-500 opacity-0 transition-opacity"></div></div>
+                        <div class="flex-1 bg-yellow-500/20 overflow-hidden"><div id="uv-seg-2" class="h-full w-full bg-yellow-500 opacity-0 transition-opacity"></div></div>
+                        <div class="flex-1 bg-orange-500/20 overflow-hidden"><div id="uv-seg-3" class="h-full w-full bg-orange-500 opacity-0 transition-opacity"></div></div>
+                        <div class="flex-1 rounded-r-full bg-red-500/20 overflow-hidden"><div id="uv-seg-4" class="h-full w-full bg-red-500 opacity-0 transition-opacity"></div></div>
+                    </div>
                 </div>
             </div>
 
             <!-- Gas PPM -->
-            <div id="card-gas" class="stat-card glass rounded-xl p-6 relative overflow-hidden group">
-                <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <i class="fa-solid fa-wind text-6xl"></i>
+            <div id="card-gas" class="glass card-gas rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 w-24 h-24 bg-green-500/20 rounded-full blur-2xl group-hover:bg-green-500/30 transition-all duration-500"></div>
+                <div class="absolute right-6 top-6 text-slate-600/50 group-hover:text-green-400/50 transition-colors duration-300 animate-float delay-300">
+                    <i class="fa-solid fa-wind text-5xl"></i>
                 </div>
-                <div class="flex flex-col">
-                    <span class="text-slate-400 text-sm font-medium uppercase tracking-wider">Air Quality (Gas)</span>
-                    <div class="flex items-end gap-2 mt-2">
-                        <span id="val-gas" class="text-4xl font-bold">--</span>
-                        <span class="text-xl text-slate-500 mb-1">PPM</span>
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-green-400 text-xs font-bold uppercase tracking-wider">Air Quality</span>
+                        <span id="status-gas" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Syncing</span>
                     </div>
-                    <span id="status-gas" class="text-xs mt-2 px-2 py-1 rounded bg-slate-800 inline-block w-fit">Safe</span>
+                    <div class="flex items-baseline gap-1">
+                        <span id="val-gas" class="text-4xl font-black tracking-tight text-white">--</span>
+                        <span class="text-lg text-slate-400 font-medium">PPM</span>
+                    </div>
+                    <div class="mt-4 h-1.5 w-full bg-slate-800/80 rounded-full overflow-hidden backdrop-blur-sm">
+                        <div id="bar-gas" class="h-full bg-gradient-to-r from-green-600 to-green-400 w-0 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Solar & Distance Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Solar Stats (Takes up 3 cols on large) -->
-            <div class="lg:col-span-3 glass rounded-xl p-6">
-                <h3 class="text-lg font-semibold mb-6 flex items-center gap-2">
-                    <i class="fa-solid fa-solar-panel text-yellow-500"></i> Solar Array Performance
+        <!-- Solar & Distance Grid (Row 2) -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-entry delay-200">
+            <!-- Solar Stats -->
+            <div class="lg:col-span-3 glass rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                
+                <h3 class="text-lg font-bold mb-6 flex items-center gap-3 relative z-10">
+                    <span class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-400 border border-yellow-500/20">
+                        <i class="fa-solid fa-solar-panel"></i>
+                    </span>
+                    Solar Array Performance
                 </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div class="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                        <p class="text-xs text-slate-400 uppercase">Voltage</p>
-                        <p class="text-2xl font-bold text-yellow-400"><span id="val-sol-v">--</span> <span class="text-sm text-slate-500">V</span></p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 relative z-10">
+                    <!-- Voltage -->
+                    <div class="bg-slate-900/50 rounded-xl p-4 border border-white/5 hover:border-yellow-500/30 transition-colors">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Voltage</p>
+                        <div class="flex items-end gap-1">
+                            <span id="val-sol-v" class="text-2xl font-bold text-yellow-400">--</span>
+                            <span class="text-sm text-slate-500 mb-1">V</span>
+                        </div>
                     </div>
-                    <div class="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                        <p class="text-xs text-slate-400 uppercase">Current</p>
-                        <p class="text-2xl font-bold text-yellow-400"><span id="val-sol-i">--</span> <span class="text-sm text-slate-500">mA</span></p>
+                    <!-- Current -->
+                    <div class="bg-slate-900/50 rounded-xl p-4 border border-white/5 hover:border-yellow-500/30 transition-colors">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Current</p>
+                        <div class="flex items-end gap-1">
+                            <span id="val-sol-i" class="text-2xl font-bold text-yellow-400">--</span>
+                            <span class="text-sm text-slate-500 mb-1">mA</span>
+                        </div>
                     </div>
-                    <div class="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                        <p class="text-xs text-slate-400 uppercase">Power Output</p>
-                        <p class="text-2xl font-bold text-green-400"><span id="val-sol-p">--</span> <span class="text-sm text-slate-500">W</span></p>
+                    <!-- Power -->
+                    <div class="bg-slate-900/50 rounded-xl p-4 border border-white/5 hover:border-green-500/30 transition-colors">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Power Output</p>
+                        <div class="flex items-end gap-1">
+                            <span id="val-sol-p" class="text-2xl font-bold text-green-400">--</span>
+                            <span class="text-sm text-slate-500 mb-1">W</span>
+                        </div>
                     </div>
                 </div>
                 <!-- Solar Chart -->
-                <div class="mt-6 h-48 w-full">
+                <div class="h-56 w-full relative z-10">
                     <canvas id="solarChart"></canvas>
                 </div>
             </div>
 
             <!-- Distance Card -->
-            <div class="glass rounded-xl p-6 flex flex-col justify-between relative overflow-hidden">
-                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl"></div>
-                <div>
-                    <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+            <div class="glass rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="absolute -right-8 -bottom-8 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl animate-pulse-soft"></div>
+                
+                <div class="relative z-10">
+                    <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
                         <i class="fa-solid fa-ruler-horizontal text-blue-400"></i> Range
                     </h3>
-                    <p class="text-slate-400 text-xs mb-4">Distance from Ground Station</p>
+                    <p class="text-slate-500 text-xs">Distance to Base</p>
                 </div>
-                <div class="text-center py-4">
-                    <span id="val-dist" class="text-5xl font-bold tracking-tighter text-white">--</span>
-                    <span class="text-lg text-slate-400 block">Meters</span>
+                
+                <div class="text-center py-6 relative z-10">
+                    <div class="flex items-center justify-center gap-2">
+                         <span id="val-dist" class="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 drop-shadow-sm">--</span>
+                    </div>
+                    <span class="text-sm text-blue-400 font-medium uppercase tracking-widest mt-1 block">Meters</span>
                 </div>
-                <div class="mt-2 text-xs text-center text-slate-500">
-                    Lat: <span id="lbl-lat">--</span> <br> Lon: <span id="lbl-lon">--</span>
+                
+                <div class="mt-2 text-[10px] text-center text-slate-500 font-mono bg-slate-950/30 py-2 rounded-lg border border-white/5 relative z-10">
+                    <div>LAT: <span id="lbl-lat" class="text-slate-300">--</span></div>
+                    <div>LON: <span id="lbl-lon" class="text-slate-300">--</span></div>
                 </div>
             </div>
         </div>
 
-        <!-- Charts & Map Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Charts & Map Grid (Row 3) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-entry delay-300 min-h-[400px]">
             
             <!-- Environmental Chart -->
-            <div class="glass rounded-xl p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-purple-400"></i> Environmental Trends
+            <div class="glass rounded-2xl p-6 sm:p-8 flex flex-col">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-purple-400"></i> Analytics
                     </h3>
-                    <div class="flex gap-2 text-xs flex-wrap">
-                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-400"></span> Temp</span>
-                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span> Hum</span>
-                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-400"></span> Gas</span>
-                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-400"></span> UV</span>
+                    <div class="flex flex-wrap justify-end gap-2 text-[10px] font-bold uppercase">
+                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 text-red-400 border border-red-500/20"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> Temp</span>
+                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> Hum</span>
+                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 text-green-400 border border-green-500/20"><span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> Gas</span>
+                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"><span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span> UV</span>
                     </div>
                 </div>
-                <div class="h-80 w-full">
+                <div class="flex-grow w-full h-64 sm:h-auto min-h-[250px]">
                     <canvas id="envChart"></canvas>
                 </div>
             </div>
 
             <!-- Map -->
-            <div class="glass rounded-xl p-1 overflow-hidden flex flex-col">
-                <div class="p-4 bg-slate-800/50 flex justify-between items-center">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
+            <div class="glass rounded-2xl p-1 overflow-hidden flex flex-col h-full min-h-[400px]">
+                <div class="p-4 bg-slate-900/40 flex justify-between items-center backdrop-blur-md border-b border-white/5">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
                         <i class="fa-solid fa-location-dot text-red-500"></i> GPS Tracking
                     </h3>
-                    <span class="text-xs bg-blue-600 px-2 py-1 rounded text-white">LIVE LOCATION</span>
+                    <span class="text-[10px] font-bold bg-red-600 px-2 py-0.5 rounded text-white shadow-[0_0_10px_rgba(220,38,38,0.5)] animate-pulse">LIVE</span>
                 </div>
-                <div id="map" class="flex-grow w-full h-full rounded-b-lg bg-slate-800 relative">
-                    <!-- Map Loads Here -->
-                </div>
+                <div id="map" class="flex-grow w-full h-full rounded-b-xl bg-slate-900 relative grayscale-[0.5] hover:grayscale-0 transition-all duration-500"></div>
             </div>
-
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-slate-800 mt-12 py-8 text-center text-slate-500 text-sm">
-        <p class="mb-2">EcoSense Dashboard &copy; 2023. Real-time Environmental Monitoring System.</p>
-        <p>
-            Designed and developed by 
-            <a href="https://jabedshariar.vercel.app" target="_blank" class="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Jabed Shariar</a>
-        </p>
+    <footer class="border-t border-white/5 mt-12 py-8 bg-slate-950/50 backdrop-blur-lg">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-slate-500 text-sm mb-2">EcoSense Dashboard &copy; 2023. Real-time Environmental Monitoring System.</p>
+            <p class="text-sm text-slate-400">
+                Designed & Developed by 
+                <a href="https://jabedshariar.vercel.app" target="_blank" class="text-cyan-400 hover:text-cyan-300 font-medium hover:underline decoration-cyan-400/30 underline-offset-4 transition-all">Jabed Shariar</a>
+            </p>
+        </div>
     </footer>
 
     <script>
         // --- Configuration ---
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQie58TDrdruTe_9HevG5NGowDAix8Q0tzG2qYL26AooSA9WlRPiLFmmWFYrc82DA/pub?output=csv";
         
-        // Ground Station Coordinates (Fixed)
         const GS_LAT = 23.88134963936152;
         const GS_LON = 90.32049486826592;
 
-        // --- State ---
         let map, mobileMarker, groundMarker, polyline;
         let envChart, solarChart;
         let isFirstLoad = true;
 
-        // --- Chart Initialization ---
+        // --- Chart Initialization with Modern Config ---
+        Chart.defaults.color = '#64748b';
+        Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial';
+
         function initCharts() {
-            // Environmental Chart (Temp, Hum, Gas, UV)
+            // Env Chart
             const ctxEnv = document.getElementById('envChart').getContext('2d');
+            const gradientTemp = ctxEnv.createLinearGradient(0, 0, 0, 400);
+            gradientTemp.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
+            gradientTemp.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
             envChart = new Chart(ctxEnv, {
                 type: 'line',
                 data: {
                     labels: [],
                     datasets: [
-                        { label: 'Temp (°C)', borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', data: [], tension: 0.4, yAxisID: 'y' },
-                        { label: 'Humidity (%)', borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', data: [], tension: 0.4, yAxisID: 'y' },
-                        { label: 'UV Index', borderColor: '#facc15', borderDash: [5, 5], data: [], tension: 0.4, yAxisID: 'y' },
-                        { label: 'Gas (PPM)', borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', data: [], tension: 0.4, fill: true, yAxisID: 'y1' }
+                        { label: 'Temp', borderColor: '#ef4444', backgroundColor: gradientTemp, data: [], tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, yAxisID: 'y' },
+                        { label: 'Hum', borderColor: '#3b82f6', backgroundColor: 'transparent', data: [], tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, borderDash: [5,5], yAxisID: 'y' },
+                        { label: 'UV', borderColor: '#eab308', backgroundColor: 'transparent', data: [], tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, yAxisID: 'y' },
+                        { label: 'Gas', borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', data: [], tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, yAxisID: 'y1' }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { display: false } },
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', padding: 10, cornerRadius: 8, displayColors: true } },
                     scales: {
                         x: { display: false },
                         y: { 
                             type: 'linear',
                             display: true,
                             position: 'left',
-                            grid: { color: 'rgba(255,255,255,0.05)' }, 
-                            ticks: { color: '#94a3b8' } 
+                            grid: { color: 'rgba(255,255,255,0.03)' }, 
+                            border: { display: false }
                         },
                         y1: { 
                             type: 'linear',
                             display: true,
                             position: 'right',
                             grid: { display: false }, 
-                            ticks: { color: '#10b981' },
-                            title: { display: true, text: 'Gas PPM', color: '#10b981', font: {size: 10} }
+                            border: { display: false },
+                            ticks: { color: '#10b981', font: {size: 10} }
                         }
                     }
                 }
             });
 
-            // Solar Chart (Power, Voltage, Current)
+            // Solar Chart
             const ctxSolar = document.getElementById('solarChart').getContext('2d');
             solarChart = new Chart(ctxSolar, {
                 type: 'bar',
                 data: {
                     labels: [],
                     datasets: [
-                        { label: 'Power (W)', backgroundColor: '#22c55e', data: [], yAxisID: 'y' },
-                        { label: 'Voltage (V)', backgroundColor: '#eab308', data: [], yAxisID: 'y' },
-                        { label: 'Current (mA)', type: 'line', borderColor: '#3b82f6', borderDash: [5,5], data: [], yAxisID: 'y1' }
+                        { label: 'Power', backgroundColor: '#22c55e', data: [], borderRadius: 4, barThickness: 8, yAxisID: 'y' },
+                        { label: 'Voltage', backgroundColor: '#eab308', data: [], borderRadius: 4, barThickness: 8, yAxisID: 'y' },
+                        { label: 'Current', type: 'line', borderColor: '#3b82f6', borderWidth: 2, pointRadius: 0, data: [], yAxisID: 'y1' }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: true, labels: { color: '#cbd5e1', font: {size: 10} } } },
+                    plugins: { legend: { display: true, labels: { boxWidth: 10, usePointStyle: true, font: {size: 10} } } },
                     scales: {
                         x: { display: false },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } },
                         y1: { 
                             position: 'right', 
                             grid: { display: false }, 
-                            ticks: { color: '#3b82f6' },
-                            title: { display: true, text: 'mA', color: '#3b82f6', font: {size: 10} }
+                            border: { display: false },
+                            ticks: { color: '#3b82f6', font: {size: 10} }
                         }
                     }
                 }
@@ -344,30 +435,28 @@
 
         // --- Map Initialization ---
         function initMap() {
-            map = L.map('map').setView([GS_LAT, GS_LON], 15);
+            map = L.map('map', { zoomControl: false }).setView([GS_LAT, GS_LON], 15);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                attribution: '&copy; CARTO',
                 subdomains: 'abcd',
                 maxZoom: 20
             }).addTo(map);
 
-            // Ground Station
             const gsIcon = L.divIcon({
                 className: 'custom-div-icon',
-                html: "<div style='background-color:#3b82f6; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow: 0 0 10px #3b82f6;'></div>",
-                iconSize: [12, 12],
-                iconAnchor: [6, 6]
+                html: "<div style='background-color:#3b82f6; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow: 0 0 15px #3b82f6;'></div>",
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
             });
-            groundMarker = L.marker([GS_LAT, GS_LON], { icon: gsIcon }).addTo(map)
-                .bindPopup("Ground Station").openPopup();
+            groundMarker = L.marker([GS_LAT, GS_LON], { icon: gsIcon }).addTo(map).bindPopup("Ground Station");
 
-            // Mobile Station
             const msIcon = L.divIcon({
                 className: 'custom-div-icon',
                 html: `<div style="position: relative;">
-                         <div style="position: absolute; width: 20px; height: 20px; background: rgba(239, 68, 68, 0.4); border-radius: 50%; animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;"></div>
-                         <div style="position: absolute; top: 5px; left: 5px; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; border: 2px solid white; animation: pulse-dot 1.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) -.4s infinite;"></div>
+                         <div style="position: absolute; top: -10px; left: -10px; width: 40px; height: 40px; background: rgba(239, 68, 68, 0.3); border-radius: 50%; animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;"></div>
+                         <div style="position: absolute; top: 5px; left: 5px; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #ef4444;"></div>
                        </div>`,
                 iconSize: [20, 20],
                 iconAnchor: [10, 10]
@@ -375,77 +464,40 @@
             mobileMarker = L.marker([GS_LAT, GS_LON], { icon: msIcon }).addTo(map);
         }
 
-        // --- Haversine Distance ---
         function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
             const R = 6371000; 
-            const dLat = deg2rad(lat2 - lat1);
-            const dLon = deg2rad(lon2 - lon1);
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return Math.floor(R * c); 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return Math.floor(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))); 
         }
 
-        function deg2rad(deg) { return deg * (Math.PI / 180); }
-
-        // --- Data Fetching ---
         async function fetchData() {
             try {
-                // cache_buster ensures we get fresh data from Google's servers on every page reload
-                const response = await fetch(SHEET_URL + "&cache_buster=" + Date.now(), {
-                    cache: 'reload' // Force browser to reload from network
-                });
-
+                const response = await fetch(SHEET_URL + "&cache_buster=" + Date.now(), { cache: 'reload' });
                 if (!response.ok) throw new Error("Network response was not ok");
                 const text = await response.text();
                 
-                // Parse CSV
                 const rows = text.split('\n').map(row => row.split(','));
-                
-                // Filter valid rows (must have content)
                 const dataRows = rows.filter(r => r.join('').trim().length > 0);
                 
-                if (dataRows.length < 2) {
-                    console.warn("No data found.");
-                    return;
-                }
+                if (dataRows.length < 2) return;
 
-                // Get Headers (Row 0)
                 const headers = dataRows[0].map(h => h.trim()); 
                 const timestampIdx = headers.indexOf('Timestamp');
 
-                // --- SMART SORTING: Find the row with the LATEST timestamp ---
-                // We map all rows to objects containing their data and a parsed Date object
                 const allData = dataRows.slice(1).map(row => {
-                    // Safety check for row length
                     if(row.length < headers.length) return null;
-                    
-                    const timeStr = row[timestampIdx];
-                    // Clean quotes from timestamp if present
-                    const cleanTime = timeStr ? timeStr.replace(/"/g, '').trim() : '';
+                    const cleanTime = row[timestampIdx] ? row[timestampIdx].replace(/"/g, '').trim() : '';
                     const time = new Date(cleanTime);
-                    
-                    return {
-                        rowRaw: row,
-                        timeObj: time,
-                        valid: !isNaN(time.getTime()) // Check if date is valid
-                    };
-                }).filter(item => item !== null && item.valid);
+                    return { rowRaw: row, timeObj: time, valid: !isNaN(time.getTime()) };
+                }).filter(item => item && item.valid);
 
-                // Sort descending (newest first)
                 allData.sort((a, b) => b.timeObj - a.timeObj);
+                if (allData.length === 0) return;
 
-                if (allData.length === 0) {
-                    console.warn("No valid timestamped rows found.");
-                    return;
-                }
-
-                // The first item is now the latest
-                const latestEntry = allData[0];
-                const lastRow = latestEntry.rowRaw;
-
-                // Helper to get data by exact header name
+                const lastRow = allData[0].rowRaw;
                 const getVal = (headerName) => {
                     const idx = headers.indexOf(headerName);
                     if (idx === -1) return 0; 
@@ -454,26 +506,21 @@
                     return val; 
                 };
 
-                // --- Extract Data based on SPECIFIC Headers ---
-                const timestampStr = getVal('Timestamp');
-                const lat = parseFloat(getVal('Latitude')) || GS_LAT;
-                const lon = parseFloat(getVal('Longitude')) || GS_LON;
-                const temp = parseFloat(getVal('Temperature_C')) || 0;
-                const hum = parseFloat(getVal('Humidity_%')) || 0;
-                const gas = parseFloat(getVal('Gas_PPM')) || 0;
-                const uv = parseFloat(getVal('UV_Index')) || 0;
-                const solV = parseFloat(getVal('Solar_Voltage_V')) || 0;
-                const solI = parseFloat(getVal('Solar_Current_mA')) || 0; 
-
-                // Calculate Power (W) = V * (mA / 1000)
-                const solP = (solV * (solI / 1000)).toFixed(2);
-
-                const dataObj = { timestampStr, lat, lon, temp, hum, gas, uv, solV, solI, solP };
+                const dataObj = {
+                    timestampStr: getVal('Timestamp'),
+                    lat: parseFloat(getVal('Latitude')) || GS_LAT,
+                    lon: parseFloat(getVal('Longitude')) || GS_LON,
+                    temp: parseFloat(getVal('Temperature_C')) || 0,
+                    hum: parseFloat(getVal('Humidity_%')) || 0,
+                    gas: parseFloat(getVal('Gas_PPM')) || 0,
+                    uv: parseFloat(getVal('UV_Index')) || 0,
+                    solV: parseFloat(getVal('Solar_Voltage_V')) || 0,
+                    solI: parseFloat(getVal('Solar_Current_mA')) || 0
+                };
+                dataObj.solP = (dataObj.solV * (dataObj.solI / 1000)).toFixed(2);
 
                 updateUI(dataObj);
                 
-                // Update charts with sorted history (take top 20 latest)
-                // We reverse it because charts usually go Left(Old) -> Right(New)
                 const history = allData.slice(0, 20).reverse().map(item => {
                     const row = item.rowRaw;
                     const getRowVal = (name) => {
@@ -491,17 +538,14 @@
                         solP: (getRowVal('Solar_Voltage_V') * (getRowVal('Solar_Current_mA')/1000)).toFixed(2)
                     };
                 });
-                
                 updateChartsHistory(history);
 
             } catch (error) {
                 console.error("Fetch error:", error);
-                document.getElementById('connection-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> Error Loading`;
             }
         }
 
         function updateUI(data) {
-            // Text Updates
             document.getElementById('val-temp').innerText = data.temp;
             document.getElementById('val-hum').innerText = data.hum;
             document.getElementById('val-uv').innerText = data.uv;
@@ -512,108 +556,73 @@
             document.getElementById('lbl-lat').innerText = data.lat.toFixed(6);
             document.getElementById('lbl-lon').innerText = data.lon.toFixed(6);
             
-            // Timestamp from Sheet
-            document.getElementById('last-updated').innerText = "Last Updated: " + (data.timestampStr || "Unknown");
+            const timeStr = data.timestampStr || "Unknown";
+            const dateObj = new Date(timeStr);
+            const formattedTime = !isNaN(dateObj) ? dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : timeStr;
+            document.getElementById('last-updated').innerText = "UPDATED: " + formattedTime;
 
-            // Progress Bars
+            // Bar Widths
             document.getElementById('bar-temp').style.width = Math.min((data.temp / 50) * 100, 100) + '%';
             document.getElementById('bar-hum').style.width = Math.min(data.hum, 100) + '%';
+            document.getElementById('bar-gas').style.width = Math.min((data.gas / 500) * 100, 100) + '%';
+
+            // UV Visualizer
+            const uvSegs = ['uv-seg-1', 'uv-seg-2', 'uv-seg-3', 'uv-seg-4'];
+            uvSegs.forEach(id => document.getElementById(id).style.opacity = '0');
+            if (data.uv > 0) document.getElementById('uv-seg-1').style.opacity = '1';
+            if (data.uv > 3) document.getElementById('uv-seg-2').style.opacity = '1';
+            if (data.uv > 6) document.getElementById('uv-seg-3').style.opacity = '1';
+            if (data.uv > 9) document.getElementById('uv-seg-4').style.opacity = '1';
 
             // Distance
-            const dist = getDistanceFromLatLonInM(GS_LAT, GS_LON, data.lat, data.lon);
-            document.getElementById('val-dist').innerText = dist;
+            document.getElementById('val-dist').innerText = getDistanceFromLatLonInM(GS_LAT, GS_LON, data.lat, data.lon);
 
             // Map
             if (mobileMarker) {
                 const newLatLng = new L.LatLng(data.lat, data.lon);
                 mobileMarker.setLatLng(newLatLng);
-                if (isFirstLoad && data.lat !== 0) {
-                    map.panTo(newLatLng);
-                    isFirstLoad = false;
-                }
+                if (isFirstLoad && data.lat !== 0) { map.panTo(newLatLng); isFirstLoad = false; }
                 if (polyline) map.removeLayer(polyline);
                 polyline = L.polyline([[GS_LAT, GS_LON], [data.lat, data.lon]], {
-                    color: 'rgba(59, 130, 246, 0.5)',
+                    color: '#3b82f6',
                     dashArray: '5, 10',
-                    weight: 2
+                    weight: 3,
+                    opacity: 0.6
                 }).addTo(map);
             }
 
-            // --- QUALITY JUDGEMENTS ---
-            
-            // Helper for setting status text & color
+            // Status Text
             const setStatus = (id, text, type) => {
                 const el = document.getElementById(id);
                 el.innerText = text;
-                // Reset classes then add base + type specific
-                el.className = "text-xs mt-2 px-2 py-1 rounded inline-block w-fit ";
-                if(type === 'good') el.classList.add("bg-green-600/20", "text-green-400", "border", "border-green-600/30");
-                else if(type === 'warn') el.classList.add("bg-yellow-600/20", "text-yellow-400", "border", "border-yellow-600/30");
-                else if(type === 'danger') el.classList.add("bg-red-600/20", "text-red-400", "border", "border-red-600/30", "animate-pulse");
-                else el.classList.add("bg-slate-800", "text-gray-300"); // neutral
+                el.className = "text-[10px] px-1.5 py-0.5 rounded border ";
+                if(type === 'good') el.classList.add("bg-green-500/10", "text-green-400", "border-green-500/20");
+                else if(type === 'warn') el.classList.add("bg-yellow-500/10", "text-yellow-400", "border-yellow-500/20");
+                else if(type === 'danger') el.classList.add("bg-red-500/10", "text-red-400", "border-red-500/20", "animate-pulse");
+                else el.classList.add("bg-slate-800", "text-slate-400", "border-slate-700");
             };
 
-            // 1. Temperature Judgment
-            const barTemp = document.getElementById('bar-temp');
-            if (data.temp < 15) {
-                setStatus('status-temp', 'Cool', 'good');
-                barTemp.className = "h-full bg-cyan-500 w-0 transition-all duration-1000";
-            } else if (data.temp >= 15 && data.temp <= 32) {
-                setStatus('status-temp', 'Optimal', 'good');
-                barTemp.className = "h-full bg-green-500 w-0 transition-all duration-1000";
-            } else {
-                setStatus('status-temp', 'Hot', 'danger');
-                barTemp.className = "h-full bg-orange-500 w-0 transition-all duration-1000";
-            }
+            if (data.temp < 15) setStatus('status-temp', 'Cool', 'good');
+            else if (data.temp <= 32) setStatus('status-temp', 'Optimal', 'good');
+            else setStatus('status-temp', 'Hot', 'danger');
 
-            // 2. Humidity Judgment
-            if (data.hum < 30) {
-                setStatus('status-hum', 'Dry', 'warn');
-            } else if (data.hum >= 30 && data.hum <= 65) {
-                setStatus('status-hum', 'Comfortable', 'good');
-            } else {
-                setStatus('status-hum', 'High Humidity', 'warn');
-            }
+            if (data.hum < 30) setStatus('status-hum', 'Dry', 'warn');
+            else if (data.hum <= 65) setStatus('status-hum', 'Ok', 'good');
+            else setStatus('status-hum', 'Humid', 'warn');
 
-            // 3. UV Judgment
-            const cardUV = document.getElementById('card-uv');
-            cardUV.className = `stat-card glass rounded-xl p-6 relative overflow-hidden group`; // Reset
-            if (data.uv <= 2) {
-                setStatus('status-uv', 'Low', 'good');
-            } else if (data.uv > 2 && data.uv <= 5) {
-                setStatus('status-uv', 'Moderate', 'warn');
-                cardUV.classList.add('border-yellow-500', 'bg-yellow-500/5');
-            } else if (data.uv > 5 && data.uv <= 7) {
-                setStatus('status-uv', 'High', 'warn');
-                cardUV.classList.add('border-orange-500', 'bg-orange-500/5');
-            } else {
-                setStatus('status-uv', 'Danger', 'danger');
-                cardUV.classList.add('border-red-500', 'bg-red-500/10');
-            }
+            if (data.uv <= 2) setStatus('status-uv', 'Low', 'good');
+            else if (data.uv <= 5) setStatus('status-uv', 'Mod', 'warn');
+            else if (data.uv <= 7) setStatus('status-uv', 'High', 'warn');
+            else setStatus('status-uv', 'Extreme', 'danger');
 
-            // 4. Gas Judgment
-            const cardGas = document.getElementById('card-gas');
-            cardGas.className = `stat-card glass rounded-xl p-6 relative overflow-hidden group`;
-            if (data.gas <= 100) {
-                setStatus('status-gas', 'Excellent', 'good');
-            } else if (data.gas > 100 && data.gas <= 250) {
-                setStatus('status-gas', 'Moderate', 'warn');
-            } else {
-                setStatus('status-gas', 'Hazardous', 'danger');
-                cardGas.classList.add('border-red-500', 'bg-red-500/10');
-            }
-
-            // Solar Judgments Removed as requested
+            if (data.gas <= 100) setStatus('status-gas', 'Good', 'good');
+            else if (data.gas <= 250) setStatus('status-gas', 'Fair', 'warn');
+            else setStatus('status-gas', 'Poor', 'danger');
         }
 
         function updateChartsHistory(historyData) {
-            // Arrays for Chart.js
-            const labels = historyData.map(d => {
-                // Formatting time briefly (e.g. "10:30:05") if timestamp is full date string
-                return d.time ? d.time.split(' ')[1] || d.time : '';
-            });
-
-            // Env Chart Update
+            const labels = historyData.map(d => d.time ? d.time.split(' ')[1] || d.time : '');
+            
             envChart.data.labels = labels;
             envChart.data.datasets[0].data = historyData.map(d => d.temp);
             envChart.data.datasets[1].data = historyData.map(d => d.hum);
@@ -621,7 +630,6 @@
             envChart.data.datasets[3].data = historyData.map(d => d.gas);
             envChart.update();
 
-            // Solar Chart Update
             solarChart.data.labels = labels;
             solarChart.data.datasets[0].data = historyData.map(d => d.solP);
             solarChart.data.datasets[1].data = historyData.map(d => d.solV);
@@ -629,15 +637,11 @@
             solarChart.update();
         }
 
-        // --- Lifecycle ---
         window.onload = function() {
             initMap();
             initCharts();
-            // Fetch once on load (user must refresh page to get new data)
             fetchData();
         };
-
     </script>
 </body>
 </html>
-
