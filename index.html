@@ -394,7 +394,7 @@
             try {
                 // cache_buster ensures we get fresh data from Google's servers on every page reload
                 const response = await fetch(SHEET_URL + "&cache_buster=" + Date.now(), {
-                    cache: 'no-store'
+                    cache: 'reload' // Force browser to reload from network
                 });
 
                 if (!response.ok) throw new Error("Network response was not ok");
@@ -411,21 +411,50 @@
                     return;
                 }
 
-                // Get Headers (Row 0) and Last Row (Latest Data)
-                const headers = dataRows[0].map(h => h.trim()); // Case sensitive based on prompt
-                const lastRow = dataRows[dataRows.length - 1];
+                // Get Headers (Row 0)
+                const headers = dataRows[0].map(h => h.trim()); 
+                const timestampIdx = headers.indexOf('Timestamp');
+
+                // --- SMART SORTING: Find the row with the LATEST timestamp ---
+                // We map all rows to objects containing their data and a parsed Date object
+                const allData = dataRows.slice(1).map(row => {
+                    // Safety check for row length
+                    if(row.length < headers.length) return null;
+                    
+                    const timeStr = row[timestampIdx];
+                    // Clean quotes from timestamp if present
+                    const cleanTime = timeStr ? timeStr.replace(/"/g, '').trim() : '';
+                    const time = new Date(cleanTime);
+                    
+                    return {
+                        rowRaw: row,
+                        timeObj: time,
+                        valid: !isNaN(time.getTime()) // Check if date is valid
+                    };
+                }).filter(item => item !== null && item.valid);
+
+                // Sort descending (newest first)
+                allData.sort((a, b) => b.timeObj - a.timeObj);
+
+                if (allData.length === 0) {
+                    console.warn("No valid timestamped rows found.");
+                    return;
+                }
+
+                // The first item is now the latest
+                const latestEntry = allData[0];
+                const lastRow = latestEntry.rowRaw;
 
                 // Helper to get data by exact header name
                 const getVal = (headerName) => {
                     const idx = headers.indexOf(headerName);
-                    if (idx === -1) return 0; // Header not found
+                    if (idx === -1) return 0; 
                     let val = lastRow[idx];
                     if (typeof val === 'string') val = val.replace(/"/g, '').trim();
                     return val; 
                 };
 
                 // --- Extract Data based on SPECIFIC Headers ---
-                // Timestamp Latitude Longitude Temperature_C Humidity_% Gas_PPM UV_Index Solar_Voltage_V Solar_Current_mA
                 const timestampStr = getVal('Timestamp');
                 const lat = parseFloat(getVal('Latitude')) || GS_LAT;
                 const lon = parseFloat(getVal('Longitude')) || GS_LON;
@@ -434,7 +463,7 @@
                 const gas = parseFloat(getVal('Gas_PPM')) || 0;
                 const uv = parseFloat(getVal('UV_Index')) || 0;
                 const solV = parseFloat(getVal('Solar_Voltage_V')) || 0;
-                const solI = parseFloat(getVal('Solar_Current_mA')) || 0; // In mA
+                const solI = parseFloat(getVal('Solar_Current_mA')) || 0; 
 
                 // Calculate Power (W) = V * (mA / 1000)
                 const solP = (solV * (solI / 1000)).toFixed(2);
@@ -443,15 +472,16 @@
 
                 updateUI(dataObj);
                 
-                // For charts, we ideally want history. In this static fetch, we usually only get the last row easily 
-                // unless we map the whole array. Let's map the last 20 rows for the chart.
-                const history = dataRows.slice(-20).map(row => {
+                // Update charts with sorted history (take top 20 latest)
+                // We reverse it because charts usually go Left(Old) -> Right(New)
+                const history = allData.slice(0, 20).reverse().map(item => {
+                    const row = item.rowRaw;
                     const getRowVal = (name) => {
                          const i = headers.indexOf(name);
                          return i !== -1 ? parseFloat(row[i]) : 0;
                     };
                     return {
-                        time: row[headers.indexOf('Timestamp')],
+                        time: row[timestampIdx],
                         temp: getRowVal('Temperature_C'),
                         hum: getRowVal('Humidity_%'),
                         gas: getRowVal('Gas_PPM'),
