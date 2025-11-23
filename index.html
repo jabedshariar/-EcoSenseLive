@@ -236,18 +236,12 @@
     <!-- Footer -->
     <footer class="border-t border-slate-800 mt-12 py-8 text-center text-slate-500 text-sm">
         <p>EcoSense Dashboard &copy; 2023. Real-time Environmental Monitoring System.</p>
-        <p class="mt-2">Designed and developed by 
-            <a href="https://jabedshariar.vercel.app/" 
-               target="_blank" 
-               class="text-blue-400 hover:text-blue-300 transition-colors duration-200 font-medium underline">
-               Jabed Shariar
-            </a>
-        </p>
     </footer>
 
     <script>
         // --- Configuration ---
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQie58TDrdruTe_9HevG5NGowDAix8Q0tzG2qYL26AooSA9WlRPiLFmmWFYrc82DA/pub?output=csv";
+        const REFRESH_RATE = 3000; // 3 seconds
         
         // Ground Station Coordinates (Fixed)
         const GS_LAT = 23.88134963936152;
@@ -257,8 +251,6 @@
         let map, mobileMarker, groundMarker, polyline;
         let envChart, solarChart;
         let isFirstLoad = true;
-        let lastTimestamp = null;
-        let refreshInterval = null;
 
         // --- Chart Initialization ---
         function initCharts() {
@@ -370,185 +362,92 @@
             return deg * (Math.PI / 180);
         }
 
-        // --- Parse timestamp from Google Sheets ---
-        function parseTimestamp(timestampStr) {
-            // Try to parse various timestamp formats from Google Sheets
-            if (!timestampStr) return null;
-            
-            // Try ISO format first
-            let date = new Date(timestampStr);
-            if (!isNaN(date.getTime())) return date;
-            
-            // Try other common formats
-            date = new Date(timestampStr.replace(/(\d+)\/(\d+)\/(\d+)/, '$2/$1/$3'));
-            if (!isNaN(date.getTime())) return date;
-            
-            return null;
-        }
-
-        // --- Calculate next refresh time based on timestamp ---
-        function calculateNextRefresh(currentTimestamp) {
-            if (!currentTimestamp) return 10000; // Default 10 seconds if no timestamp
-            
-            const now = new Date();
-            const dataTime = new Date(currentTimestamp);
-            const timeDiff = now - dataTime;
-            
-            // If data is fresh (less than 1 minute old), check more frequently
-            if (timeDiff < 60000) {
-                return 5000; // 5 seconds
-            }
-            // If data is somewhat recent (1-5 minutes old), check every 30 seconds
-            else if (timeDiff < 300000) {
-                return 30000; // 30 seconds
-            }
-            // If data is old, check every minute
-            else {
-                return 60000; // 60 seconds
-            }
-        }
-
-        // --- Improved Data Fetching & Parsing ---
+        // --- Data Fetching & Parsing ---
         async function fetchData() {
             try {
-                // Add cache busting to avoid browser caching
-                const timestamp = new Date().getTime();
-                const response = await fetch(`${SHEET_URL}&t=${timestamp}`);
-                
+                // Appending a timestamp query prevents browser/server caching to get fresh data
+                const response = await fetch(SHEET_URL + "&cache_buster=" + Date.now());
                 if (!response.ok) throw new Error("Network response was not ok");
-                
                 const text = await response.text();
-                console.log("Raw CSV:", text); // Debug log
                 
-                // Parse CSV - handle different line endings and quotes
-                const rows = text.split('\n')
-                    .filter(row => row.trim().length > 0)
-                    .map(row => {
-                        // Handle quoted CSV values and proper CSV parsing
-                        const matches = row.match(/(?:"[^"]*"|[^,])+/g);
-                        return matches ? matches.map(cell => cell.replace(/^"|"$/g, '').trim()) : [];
-                    });
+                // Parse CSV - Simple split handles empty columns (e.g. "val1,,val3") correctly
+                const rows = text.split('\n').map(row => row.split(','));
                 
-                if (rows.length < 2) {
-                    throw new Error("No data rows found");
+                // Basic cleanup
+                const dataRows = rows.filter(r => r.length > 1); // Filter empty lines
+                
+                if (dataRows.length < 2) {
+                    console.warn("No data found, using dummy mode.");
+                    useDummyData();
+                    return;
                 }
 
-                const headers = rows[0].map(h => h.toLowerCase().trim());
-                console.log("CSV Headers:", headers); // Debug log
+                // Assume headers are row 0
+                const headers = dataRows[0].map(h => h.toLowerCase().trim());
+                const lastRow = dataRows[dataRows.length - 1];
+
+                // Map columns helper
+                const getCol = (keywords, defaultIdx) => {
+                    const idx = headers.findIndex(h => keywords.some(k => h.includes(k)));
+                    // Handle case where header exists but row data is empty
+                    let val = idx !== -1 ? lastRow[idx] : lastRow[defaultIdx];
+                    // Clean quotes if present
+                    if (typeof val === 'string') val = val.replace(/"/g, '');
+                    return parseFloat(val);
+                };
+
+                // Extract Data
+                // Order: Temp, Hum, UV, Gas, SolV, SolI, SolP, Lat, Lon
+                const temp = getCol(['temp'], 0) || 0;
+                const hum = getCol(['hum'], 1) || 0;
+                const uv = getCol(['uv'], 2) || 0;
+                const gas = getCol(['gas', 'ppm'], 3) || 0;
+                const solV = getCol(['volt', 'solar_v'], 4) || 0;
+                const solI = getCol(['current', 'solar_i'], 5) || 0;
                 
-                // Get the last data row (most recent entry)
-                const lastRow = rows[rows.length - 1];
-                console.log("Last row data:", lastRow); // Debug log
+                // Calculate Power explicitly: Power (W) = Voltage (V) * (Current (mA) / 1000)
+                const solP = (solV * (solI / 1000)).toFixed(2);
+                
+                const lat = getCol(['lat'], 7) || GS_LAT;
+                const lon = getCol(['lon', 'long'], 8) || GS_LON;
 
-                // Extract timestamp first
-                const currentTimestamp = parseTimestamp(lastRow[0]);
-                console.log("Parsed timestamp:", currentTimestamp);
+                // Validate critical data (prevent NaN)
+                if (isNaN(lat) || isNaN(lon)) throw new Error("Invalid GPS Data");
 
-                // Map columns based on your actual CSV headers
-                const getCol = (possibleNames, defaultIndex) => {
-                    // Try to find by header name first
-                    for (const name of possibleNames) {
-                        const index = headers.findIndex(h => h.includes(name));
-                        if (index !== -1 && lastRow[index] && !isNaN(parseFloat(lastRow[index]))) {
-                            return parseFloat(lastRow[index]);
-                        }
-                    }
-                    // Fallback to default index
-                    return lastRow[defaultIndex] ? parseFloat(lastRow[defaultIndex]) : 0;
-                };
-
-                // Extract data based on your actual CSV structure
-                const data = {
-                    timestamp: currentTimestamp,
-                    temp: getCol(['temperature', 'temp'], 3),
-                    hum: getCol(['humidity', 'hum'], 4),
-                    gas: getCol(['gas', 'ppm'], 5),
-                    uv: getCol(['uv', 'uvindex'], 6),
-                    solV: getCol(['solar_voltage', 'voltage', 'solar_v'], 7),
-                    solI: getCol(['solar_current', 'current', 'solar_i'], 8),
-                    lat: getCol(['latitude', 'lat'], 1) || GS_LAT,
-                    lon: getCol(['longitude', 'lon', 'long'], 2) || GS_LON
-                };
-
-                // Calculate Power: Power (W) = Voltage (V) * Current (mA) / 1000
-                data.solP = (data.solV * data.solI / 1000).toFixed(2);
-
-                console.log("Parsed data:", data); // Debug log
-
-                // Validate data
-                if (isNaN(data.temp) || isNaN(data.hum)) {
-                    throw new Error("Invalid data format");
-                }
+                const data = { temp, hum, uv, gas, solV, solI, solP, lat, lon };
 
                 updateUI(data);
                 updateChartsWithNewData(data);
                 
-                // Update connection status
-                document.getElementById('connection-status').innerHTML = 
-                    `<span class="w-2 h-2 rounded-full bg-green-500"></span> Online`;
-                
-                // Schedule next refresh based on timestamp
-                scheduleNextRefresh(currentTimestamp);
-                    
+                document.getElementById('connection-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-green-400"></span> Online`;
+
             } catch (error) {
                 console.error("Fetch error:", error);
-                document.getElementById('connection-status').innerHTML = 
-                    `<span class="w-2 h-2 rounded-full bg-red-500"></span> Offline (Demo Mode)`;
-                useDummyData();
-                
-                // If error, try again in 10 seconds
-                scheduleNextRefresh(null);
+                document.getElementById('connection-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> Offline (Demo Mode)`;
+                useDummyData(); 
             }
         }
 
-        // --- Schedule next data fetch ---
-        function scheduleNextRefresh(currentTimestamp) {
-            // Clear any existing interval
-            if (refreshInterval) {
-                clearTimeout(refreshInterval);
-            }
-            
-            const nextRefreshMs = calculateNextRefresh(currentTimestamp);
-            console.log(`Scheduling next refresh in ${nextRefreshMs}ms`);
-            
-            refreshInterval = setTimeout(() => {
-                fetchData();
-            }, nextRefreshMs);
-        }
-
-        // --- Improved Dummy Data Generator ---
+        // --- Demo Data Generator (Fallback) ---
         function useDummyData() {
+            // Simulate random movements around the ground station
             const time = Date.now() / 1000;
+            const lat = GS_LAT + Math.sin(time/10) * 0.002;
+            const lon = GS_LON + Math.cos(time/10) * 0.002;
             
-            // More realistic dummy data with gradual changes
             const data = {
-                timestamp: new Date(),
-                temp: 25 + Math.sin(time/50) * 8 + Math.random() * 2,
-                hum: 50 + Math.cos(time/60) * 20 + Math.random() * 5,
-                uv: Math.max(0, Math.sin(time/40) * 6 + 3 + Math.random()),
-                gas: 100 + Math.sin(time/30) * 150 + Math.random() * 50,
-                solV: 12 + Math.sin(time/20) * 2 + Math.random(),
-                solI: 1500 + Math.cos(time/25) * 800 + Math.random() * 300, // in mA
-                lat: GS_LAT + (Math.sin(time/30) * 0.005),
-                lon: GS_LON + (Math.cos(time/30) * 0.005)
+                temp: (30 + Math.sin(time) * 5).toFixed(1),
+                hum: (60 + Math.cos(time) * 10).toFixed(1),
+                uv: (Math.abs(Math.sin(time/2)) * 10).toFixed(1),
+                gas: (Math.abs(Math.cos(time/3)) * 400).toFixed(0),
+                solV: (12 + Math.random()).toFixed(1),
+                solI: (2 + Math.random()).toFixed(1),
+                solP: (24 + Math.random() * 5).toFixed(1),
+                lat: lat,
+                lon: lon
             };
-            
-            // Calculate power
-            data.solP = (data.solV * data.solI / 1000).toFixed(2);
-            
-            // Round values appropriately
-            data.temp = data.temp.toFixed(1);
-            data.hum = data.hum.toFixed(1);
-            data.uv = data.uv.toFixed(1);
-            data.gas = Math.max(0, data.gas.toFixed(0));
-            data.solV = data.solV.toFixed(1);
-            data.solI = data.solI.toFixed(0); // Current in mA as whole number
-            
             updateUI(data);
             updateChartsWithNewData(data);
-            
-            // Schedule next refresh for demo mode
-            scheduleNextRefresh(data.timestamp);
         }
 
         // --- UI Updater ---
@@ -563,12 +462,7 @@
             document.getElementById('val-sol-p').innerText = data.solP;
             document.getElementById('lbl-lat').innerText = data.lat.toFixed(6);
             document.getElementById('lbl-lon').innerText = data.lon.toFixed(6);
-            
-            // Update timestamp display
-            const timestampText = data.timestamp ? 
-                `Last Updated: ${data.timestamp.toLocaleTimeString()}` : 
-                "Last Updated: " + new Date().toLocaleTimeString();
-            document.getElementById('last-updated').innerText = timestampText;
+            document.getElementById('last-updated').innerText = "Last Updated: " + new Date().toLocaleTimeString();
 
             // Progress Bars
             document.getElementById('bar-temp').style.width = Math.min((data.temp / 50) * 100, 100) + '%';
@@ -582,12 +476,7 @@
             if (mobileMarker) {
                 const newLatLng = new L.LatLng(data.lat, data.lon);
                 mobileMarker.setLatLng(newLatLng);
-                
-                // Only pan on first load or if significantly moved
-                if (isFirstLoad) {
-                    map.panTo(newLatLng);
-                    isFirstLoad = false;
-                }
+                map.panTo(newLatLng);
                 
                 // Draw line
                 if (polyline) map.removeLayer(polyline);
@@ -644,34 +533,36 @@
             const timeLabel = new Date().toLocaleTimeString();
             
             // Env Chart
-            if (envChart.data.labels.length > 15) {
+            if (envChart.data.labels.length > 20) {
                 envChart.data.labels.shift();
                 envChart.data.datasets.forEach((dataset) => dataset.data.shift());
             }
             envChart.data.labels.push(timeLabel);
-            envChart.data.datasets[0].data.push(parseFloat(data.temp));
-            envChart.data.datasets[1].data.push(parseFloat(data.hum));
-            envChart.data.datasets[2].data.push(parseFloat(data.gas));
-            envChart.data.datasets[3].data.push(parseFloat(data.uv));
-            envChart.update('none'); // Use 'none' for better performance
+            envChart.data.datasets[0].data.push(data.temp);
+            envChart.data.datasets[1].data.push(data.hum);
+            envChart.data.datasets[2].data.push(data.gas);
+            envChart.data.datasets[3].data.push(data.uv);
+            envChart.update();
 
-            // Solar Chart
-            if (solarChart.data.labels.length > 10) {
+            // Solar Chart (Just current snapshot or history? Let's do history for power, but snapshot logic for simplicity in this visualization)
+            // Actually let's make the solar chart show trend of Power over time, and voltage as well
+            if (solarChart.data.labels.length > 20) {
                 solarChart.data.labels.shift();
                 solarChart.data.datasets.forEach((dataset) => dataset.data.shift());
             }
             solarChart.data.labels.push(timeLabel);
-            solarChart.data.datasets[0].data.push(parseFloat(data.solP));
-            solarChart.data.datasets[1].data.push(parseFloat(data.solV));
-            solarChart.update('none');
+            solarChart.data.datasets[0].data.push(data.solP);
+            solarChart.data.datasets[1].data.push(data.solV);
+            solarChart.update();
         }
 
         // --- Lifecycle ---
         window.onload = function() {
             initMap();
             initCharts();
-            fetchData(); // Initial fetch
-            // No setInterval - refresh is now scheduled based on timestamp
+            fetchData();
+            // Restore constant 3-second refresh for reliability
+            setInterval(fetchData, REFRESH_RATE);
         };
 
     </script>
