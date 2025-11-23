@@ -366,15 +366,25 @@
         async function fetchData() {
             try {
                 // Appending a timestamp query prevents browser/server caching to get fresh data
-                const response = await fetch(SHEET_URL + "&cache_buster=" + Date.now());
+                const response = await fetch(SHEET_URL + "&cache_buster=" + Date.now(), {
+                    cache: 'no-store', // Force network request
+                    headers: {
+                        'Pragma': 'no-cache',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
                 if (!response.ok) throw new Error("Network response was not ok");
                 const text = await response.text();
                 
-                // Parse CSV - Simple split handles empty columns (e.g. "val1,,val3") correctly
+                // Parse CSV
                 const rows = text.split('\n').map(row => row.split(','));
                 
-                // Basic cleanup
-                const dataRows = rows.filter(r => r.length > 1); // Filter empty lines
+                // CLEANUP: Filter out rows that are empty or contain only commas (common in Google Sheets)
+                const dataRows = rows.filter(r => {
+                    // Join the row and trim whitespace to check if it has any actual content
+                    return r.join('').trim().length > 0;
+                });
                 
                 if (dataRows.length < 2) {
                     console.warn("No data found, using dummy mode.");
@@ -384,6 +394,8 @@
 
                 // Assume headers are row 0
                 const headers = dataRows[0].map(h => h.toLowerCase().trim());
+                
+                // GET LAST VALID ROW: Use the absolute last row from our filtered list
                 const lastRow = dataRows[dataRows.length - 1];
 
                 // Map columns helper
@@ -393,23 +405,31 @@
                     let val = idx !== -1 ? lastRow[idx] : lastRow[defaultIdx];
                     // Clean quotes if present
                     if (typeof val === 'string') val = val.replace(/"/g, '');
-                    return parseFloat(val);
+                    // Return float or 0 if empty/NaN
+                    const num = parseFloat(val);
+                    return isNaN(num) ? 0 : num;
                 };
 
                 // Extract Data
                 // Order: Temp, Hum, UV, Gas, SolV, SolI, SolP, Lat, Lon
-                const temp = getCol(['temp'], 0) || 0;
-                const hum = getCol(['hum'], 1) || 0;
-                const uv = getCol(['uv'], 2) || 0;
-                const gas = getCol(['gas', 'ppm'], 3) || 0;
-                const solV = getCol(['volt', 'solar_v'], 4) || 0;
-                const solI = getCol(['current', 'solar_i'], 5) || 0;
+                const temp = getCol(['temp'], 0);
+                const hum = getCol(['hum'], 1);
+                const uv = getCol(['uv'], 2);
+                const gas = getCol(['gas', 'ppm'], 3);
+                const solV = getCol(['volt', 'solar_v'], 4);
+                const solI = getCol(['current', 'solar_i'], 5);
                 
                 // Calculate Power explicitly: Power (W) = Voltage (V) * (Current (mA) / 1000)
                 const solP = (solV * (solI / 1000)).toFixed(2);
                 
-                const lat = getCol(['lat'], 7) || GS_LAT;
-                const lon = getCol(['lon', 'long'], 8) || GS_LON;
+                // For GPS, if 0 or missing, fallback to Ground Station to prevent map crash
+                let lat = getCol(['lat'], 7);
+                let lon = getCol(['lon', 'long'], 8);
+                
+                if (lat === 0 && lon === 0) {
+                    lat = GS_LAT;
+                    lon = GS_LON;
+                }
 
                 // Validate critical data (prevent NaN)
                 if (isNaN(lat) || isNaN(lon)) throw new Error("Invalid GPS Data");
