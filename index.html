@@ -356,7 +356,6 @@
         let envChart, solarChart;
         let isFirstLoad = true;
         let lastDataTimestamp = null; // Store valid timestamp for status check
-        let isFetching = false; // Prevent overlapping fetch requests
 
         // --- Chart Initialization with Modern Config ---
         Chart.defaults.color = '#64748b';
@@ -477,10 +476,6 @@
         }
 
         async function fetchData() {
-            // Prevent multiple requests stacking up if network is slow
-            if (isFetching) return;
-            isFetching = true;
-
             try {
                 const response = await fetch(SHEET_URL + "&cache_buster=" + Date.now(), { cache: 'reload' });
                 if (!response.ok) throw new Error("Network response was not ok");
@@ -557,8 +552,6 @@
                 console.error("Fetch error:", error);
                 document.getElementById('connection-status').innerHTML = 
                     `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Error`;
-            } finally {
-                isFetching = false;
             }
         }
 
@@ -688,12 +681,8 @@
             initMap();
             initCharts();
             fetchData();
-            
-            // Interval to update status text (e.g. "Last seen X ago")
+            // Interval to update status (ago time) even if no new data fetch
             setInterval(updateConnectionStatus, 1000);
-            
-            // Auto-refresh data every 3 seconds to keep dashboard live
-            setInterval(fetchData, 3000);
         };
     </script>
 </body>
