@@ -85,7 +85,7 @@
         .card-gas:hover { box-shadow: 0 0 25px rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
 
         /* Map & Chart Containers */
-        #map { height: 100%; min-height: 400px; z-index: 1; }
+        #map { z-index: 1; }
         
         /* Map Marker Pulse */
         @keyframes pulse-ring {
@@ -229,53 +229,29 @@
             </div>
         </div>
 
-        <!-- Solar & Distance Grid (Row 2) -->
+        <!-- Analytics & Distance (Row 2) -->
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-entry delay-200">
-            <!-- Solar Stats -->
-            <div class="lg:col-span-3 glass rounded-2xl p-6 sm:p-8 relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                
-                <h3 class="text-lg font-bold mb-6 flex items-center gap-3 relative z-10">
-                    <span class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-400 border border-yellow-500/20">
-                        <i class="fa-solid fa-solar-panel"></i>
-                    </span>
-                    Solar Array Performance
-                </h3>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 relative z-10">
-                    <!-- Voltage -->
-                    <div class="bg-slate-900/50 rounded-xl p-4 border border-white/5 hover:border-yellow-500/30 transition-colors">
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Voltage</p>
-                        <div class="flex items-end gap-1">
-                            <span id="val-sol-v" class="text-2xl font-bold text-yellow-400">--</span>
-                            <span class="text-sm text-slate-500 mb-1">V</span>
-                        </div>
-                    </div>
-                    <!-- Current -->
-                    <div class="bg-slate-900/50 rounded-xl p-4 border border-white/5 hover:border-yellow-500/30 transition-colors">
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Current</p>
-                        <div class="flex items-end gap-1">
-                            <span id="val-sol-i" class="text-2xl font-bold text-yellow-400">--</span>
-                            <span class="text-sm text-slate-500 mb-1">mA</span>
-                        </div>
-                    </div>
-                    <!-- Power -->
-                    <div class="bg-slate-900/50 rounded-xl p-4 border border-white/5 hover:border-green-500/30 transition-colors">
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Power Output</p>
-                        <div class="flex items-end gap-1">
-                            <span id="val-sol-p" class="text-2xl font-bold text-green-400">--</span>
-                            <span class="text-sm text-slate-500 mb-1">W</span>
-                        </div>
+            
+            <!-- Environmental Analytics Chart (Spans 3 Columns) -->
+            <div class="lg:col-span-3 glass rounded-2xl p-6 sm:p-8 flex flex-col min-h-[400px]">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-purple-400"></i> Environmental Trends
+                    </h3>
+                    <div class="flex flex-wrap justify-end gap-2 text-[10px] font-bold uppercase">
+                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 text-red-400 border border-red-500/20"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> Temp</span>
+                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> Hum</span>
+                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 text-green-400 border border-green-500/20"><span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> Gas</span>
+                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"><span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span> UV</span>
                     </div>
                 </div>
-                <!-- Solar Chart -->
-                <div class="h-56 w-full relative z-10">
-                    <canvas id="solarChart"></canvas>
+                <div class="flex-grow w-full h-full relative">
+                    <canvas id="envChart"></canvas>
                 </div>
             </div>
 
-            <!-- Distance Card -->
-            <div class="glass rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group">
+            <!-- Distance Card (Spans 1 Column) -->
+            <div class="glass rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group min-h-[400px]">
                 <div class="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div class="absolute -right-8 -bottom-8 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl animate-pulse-soft"></div>
                 
@@ -286,50 +262,31 @@
                     <p class="text-slate-500 text-xs">Distance to Base</p>
                 </div>
                 
-                <div class="text-center py-6 relative z-10">
+                <div class="text-center py-6 relative z-10 my-auto">
                     <div class="flex items-center justify-center gap-2">
                          <span id="val-dist" class="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 drop-shadow-sm">--</span>
                     </div>
                     <span class="text-sm text-blue-400 font-medium uppercase tracking-widest mt-1 block">Meters</span>
                 </div>
                 
-                <div class="mt-2 text-[10px] text-center text-slate-500 font-mono bg-slate-950/30 py-2 rounded-lg border border-white/5 relative z-10">
-                    <div>LAT: <span id="lbl-lat" class="text-slate-300">--</span></div>
+                <div class="mt-2 text-[10px] text-center text-slate-500 font-mono bg-slate-950/30 py-4 rounded-lg border border-white/5 relative z-10">
+                    <div class="mb-1">LAT: <span id="lbl-lat" class="text-slate-300">--</span></div>
                     <div>LON: <span id="lbl-lon" class="text-slate-300">--</span></div>
                 </div>
             </div>
         </div>
 
-        <!-- Charts & Map Grid (Row 3) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-entry delay-300 min-h-[400px]">
-            
-            <!-- Environmental Chart -->
-            <div class="glass rounded-2xl p-6 sm:p-8 flex flex-col">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-purple-400"></i> Analytics
-                    </h3>
-                    <div class="flex flex-wrap justify-end gap-2 text-[10px] font-bold uppercase">
-                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 text-red-400 border border-red-500/20"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> Temp</span>
-                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> Hum</span>
-                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 text-green-400 border border-green-500/20"><span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> Gas</span>
-                        <span class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"><span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span> UV</span>
-                    </div>
-                </div>
-                <div class="flex-grow w-full h-64 sm:h-auto min-h-[250px]">
-                    <canvas id="envChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Map -->
-            <div class="glass rounded-2xl p-1 overflow-hidden flex flex-col h-full min-h-[400px]">
+        <!-- Map (Row 3 - Full Width) -->
+        <div class="animate-entry delay-300 min-h-[500px]">
+            <div class="glass rounded-2xl p-1 overflow-hidden flex flex-col h-full">
                 <div class="p-4 bg-slate-900/40 flex justify-between items-center backdrop-blur-md border-b border-white/5">
                     <h3 class="text-lg font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-location-dot text-red-500"></i> GPS Tracking
+                        <i class="fa-solid fa-location-dot text-red-500"></i> Live GPS Tracking
                     </h3>
                     <span class="text-[10px] font-bold bg-red-600 px-2 py-0.5 rounded text-white shadow-[0_0_10px_rgba(220,38,38,0.5)] animate-pulse">LIVE</span>
                 </div>
-                <div id="map" class="flex-grow w-full h-full rounded-b-xl bg-slate-900 relative grayscale-[0.5] hover:grayscale-0 transition-all duration-500"></div>
+                <!-- Map Container with Explicit Height -->
+                <div id="map" class="w-full h-[500px] rounded-b-xl bg-slate-900 relative grayscale-[0.5] hover:grayscale-0 transition-all duration-500"></div>
             </div>
         </div>
     </main>
@@ -337,7 +294,7 @@
     <!-- Footer -->
     <footer class="border-t border-white/5 mt-12 py-8 bg-slate-950/50 backdrop-blur-lg">
         <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-slate-500 text-sm mb-2">EcoSense Dashboard &copy; 2025. Real-time Environmental Monitoring System.</p>
+            <p class="text-slate-500 text-sm mb-2">EcoSense Dashboard &copy; 2023. Real-time Environmental Monitoring System.</p>
             <p class="text-sm text-slate-400">
                 Designed & Developed by 
                 <a href="https://jabedshariar.vercel.app" target="_blank" class="text-cyan-400 hover:text-cyan-300 font-medium hover:underline decoration-cyan-400/30 underline-offset-4 transition-all">Jabed Shariar</a>
@@ -347,15 +304,16 @@
 
     <script>
         // --- Configuration ---
-        const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQie58TDrdruTe_9HevG5NGowDAix8Q0tzG2qYL26AooSA9WlRPiLFmmWFYrc82DA/pub?output=csv";
+        const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQqEZLEedPEq1MeRXgJ7LKX89wdVQ5Ll7HuSot9rBCrZz61hrFt56HW2mRqHiMdqC4W15EY6bom42Ih/pub?output=csv";
         
         const GS_LAT = 23.88134963936152;
         const GS_LON = 90.32049486826592;
 
         let map, mobileMarker, groundMarker, polyline;
-        let envChart, solarChart;
+        let envChart;
         let isFirstLoad = true;
         let lastDataTimestamp = null; // Store valid timestamp for status check
+        let isFetching = false; // Prevent overlapping fetch requests
 
         // --- Chart Initialization with Modern Config ---
         Chart.defaults.color = '#64748b';
@@ -404,35 +362,6 @@
                     }
                 }
             });
-
-            // Solar Chart
-            const ctxSolar = document.getElementById('solarChart').getContext('2d');
-            solarChart = new Chart(ctxSolar, {
-                type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: [
-                        { label: 'Power', backgroundColor: '#22c55e', data: [], borderRadius: 4, barThickness: 8, yAxisID: 'y' },
-                        { label: 'Voltage', backgroundColor: '#eab308', data: [], borderRadius: 4, barThickness: 8, yAxisID: 'y' },
-                        { label: 'Current', type: 'line', borderColor: '#3b82f6', borderWidth: 2, pointRadius: 0, data: [], yAxisID: 'y1' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: true, labels: { boxWidth: 10, usePointStyle: true, font: {size: 10} } } },
-                    scales: {
-                        x: { display: false },
-                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } },
-                        y1: { 
-                            position: 'right', 
-                            grid: { display: false }, 
-                            border: { display: false },
-                            ticks: { color: '#3b82f6', font: {size: 10} }
-                        }
-                    }
-                }
-            });
         }
 
         // --- Map Initialization ---
@@ -476,6 +405,10 @@
         }
 
         async function fetchData() {
+            // Prevent multiple requests stacking up if network is slow
+            if (isFetching) return;
+            isFetching = true;
+
             try {
                 const response = await fetch(SHEET_URL + "&cache_buster=" + Date.now(), { cache: 'reload' });
                 if (!response.ok) throw new Error("Network response was not ok");
@@ -521,11 +454,8 @@
                     temp: parseFloat(getVal('Temperature_C')) || 0,
                     hum: parseFloat(getVal('Humidity_%')) || 0,
                     gas: parseFloat(getVal('Gas_PPM')) || 0,
-                    uv: parseFloat(getVal('UV_Index')) || 0,
-                    solV: parseFloat(getVal('Solar_Voltage_V')) || 0,
-                    solI: parseFloat(getVal('Solar_Current_mA')) || 0
+                    uv: parseFloat(getVal('UV_Index')) || 0
                 };
-                dataObj.solP = (dataObj.solV * (dataObj.solI / 1000)).toFixed(2);
 
                 updateUI(dataObj);
                 
@@ -540,10 +470,7 @@
                         temp: getRowVal('Temperature_C'),
                         hum: getRowVal('Humidity_%'),
                         gas: getRowVal('Gas_PPM'),
-                        uv: getRowVal('UV_Index'),
-                        solV: getRowVal('Solar_Voltage_V'),
-                        solI: getRowVal('Solar_Current_mA'),
-                        solP: (getRowVal('Solar_Voltage_V') * (getRowVal('Solar_Current_mA')/1000)).toFixed(2)
+                        uv: getRowVal('UV_Index')
                     };
                 });
                 updateChartsHistory(history);
@@ -552,6 +479,8 @@
                 console.error("Fetch error:", error);
                 document.getElementById('connection-status').innerHTML = 
                     `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Error`;
+            } finally {
+                isFetching = false;
             }
         }
 
@@ -590,9 +519,6 @@
             document.getElementById('val-hum').innerText = data.hum;
             document.getElementById('val-uv').innerText = data.uv;
             document.getElementById('val-gas').innerText = data.gas;
-            document.getElementById('val-sol-v').innerText = data.solV;
-            document.getElementById('val-sol-i').innerText = data.solI;
-            document.getElementById('val-sol-p').innerText = data.solP;
             document.getElementById('lbl-lat').innerText = data.lat.toFixed(6);
             document.getElementById('lbl-lon').innerText = data.lon.toFixed(6);
             
@@ -669,20 +595,18 @@
             envChart.data.datasets[2].data = historyData.map(d => d.uv);
             envChart.data.datasets[3].data = historyData.map(d => d.gas);
             envChart.update();
-
-            solarChart.data.labels = labels;
-            solarChart.data.datasets[0].data = historyData.map(d => d.solP);
-            solarChart.data.datasets[1].data = historyData.map(d => d.solV);
-            solarChart.data.datasets[2].data = historyData.map(d => d.solI);
-            solarChart.update();
         }
 
         window.onload = function() {
             initMap();
             initCharts();
             fetchData();
-            // Interval to update status (ago time) even if no new data fetch
+            
+            // Interval to update status text (e.g. "Last seen X ago")
             setInterval(updateConnectionStatus, 1000);
+            
+            // Auto-refresh data every 3 seconds to keep dashboard live
+            setInterval(fetchData, 3000);
         };
     </script>
 </body>
